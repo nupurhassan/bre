@@ -104,7 +104,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               SizedBox(height: 16),
               TextFormField(
                 controller: _heightController,
-                decoration: InputDecoration(labelText: 'Height (cm)'),
+                decoration: InputDecoration(labelText: 'Height (inches)'),
                 keyboardType: TextInputType.number,
                 onChanged: (value) => _editedProfile.height = double.tryParse(value),
               ),

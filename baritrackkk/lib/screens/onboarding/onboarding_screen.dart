@@ -11,9 +11,9 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  PageController _pageController = PageController();
+  final PageController _pageController = PageController();
   int _currentPage = 0;
-  UserProfile _userProfile = UserProfile();
+  final UserProfile _userProfile = UserProfile();
   final CSVDataService _dataService = CSVDataService();
 
   @override
@@ -34,15 +34,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 children: [
                   _CombinedSurgeryInfoPage(
                     userProfile: _userProfile,
-                    onNext: () => _nextPage(),
+                    onNext: _nextPage,
                   ),
                   _PersonalInfoPage(
                     userProfile: _userProfile,
-                    onNext: () => _nextPage(),
+                    onNext: _nextPage,
                   ),
                   _ResultPage(
                     userProfile: _userProfile,
-                    onComplete: () => _completeOnboarding(),
+                    onComplete: _completeOnboarding,
                   ),
                 ],
               ),
@@ -55,14 +55,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _buildPageIndicator() {
     return Padding(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(3, (index) { // Changed from 4 to 3 pages
+        children: List.generate(3, (index) {
           return Container(
             width: index == _currentPage ? 24 : 8,
             height: 8,
-            margin: EdgeInsets.symmetric(horizontal: 4),
+            margin: const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
               color: index == _currentPage ? AppTheme.primaryBlue : Colors.grey,
               borderRadius: BorderRadius.circular(4),
@@ -75,25 +75,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _nextPage() {
     _pageController.nextPage(
-      duration: Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
   }
 
   void _completeOnboarding() async {
     try {
-      // Save user profile to CSV
       await _dataService.saveUserProfile(_userProfile);
-
-      // Save first-time flag to app settings
       await _dataService.setAppSetting('isFirstTime', false);
-
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomeScreen()),
+        MaterialPageRoute(builder: (_) => HomeScreen()),
       );
     } catch (e) {
-      print('Error completing onboarding: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error saving profile. Please try again.'),
@@ -104,12 +99,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-// Combined Surgery Date and Type Page
 class _CombinedSurgeryInfoPage extends StatefulWidget {
   final UserProfile userProfile;
   final VoidCallback onNext;
 
-  _CombinedSurgeryInfoPage({required this.userProfile, required this.onNext});
+  const _CombinedSurgeryInfoPage({required this.userProfile, required this.onNext});
 
   @override
   __CombinedSurgeryInfoPageState createState() => __CombinedSurgeryInfoPageState();
@@ -119,22 +113,20 @@ class __CombinedSurgeryInfoPageState extends State<_CombinedSurgeryInfoPage> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: EdgeInsets.all(24),
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Tell us about your surgery',
             style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 32),
-
-          // Surgery Date Section
-          Text(
+          const SizedBox(height: 32),
+          const Text(
             'Surgery Date',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           InkWell(
             onTap: () async {
               DateTime? picked = await showDatePicker(
@@ -150,7 +142,7 @@ class __CombinedSurgeryInfoPageState extends State<_CombinedSurgeryInfoPage> {
               }
             },
             child: Container(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 border: Border.all(color: AppTheme.goldenYellow),
                 borderRadius: BorderRadius.circular(8),
@@ -162,22 +154,19 @@ class __CombinedSurgeryInfoPageState extends State<_CombinedSurgeryInfoPage> {
                     widget.userProfile.surgeryDate != null
                         ? '${widget.userProfile.surgeryDate!.day}/${widget.userProfile.surgeryDate!.month}/${widget.userProfile.surgeryDate!.year}'
                         : 'Select Date',
-                    style: TextStyle(fontSize: 16),
+                    style: const TextStyle(fontSize: 16),
                   ),
-                  Icon(Icons.calendar_today),
+                  const Icon(Icons.calendar_today),
                 ],
               ),
             ),
           ),
-
-          SizedBox(height: 32),
-
-          // Surgery Type Section
-          Text(
+          const SizedBox(height: 32),
+          const Text(
             'Surgery Type',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             value: widget.userProfile.surgeryType,
             decoration: InputDecoration(
@@ -195,41 +184,25 @@ class __CombinedSurgeryInfoPageState extends State<_CombinedSurgeryInfoPage> {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            items: ['Gastric Sleeve', 'Gastric Bypass', 'Duodenal Switch'].map((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                widget.userProfile.surgeryType = value;
-              });
-            },
+            items: ['Gastric Sleeve', 'Gastric Bypass', 'Duodenal Switch']
+                .map((v) => DropdownMenuItem<String>(value: v, child: Text(v)))
+                .toList(),
+            onChanged: (v) => setState(() => widget.userProfile.surgeryType = v),
           ),
-
-          SizedBox(height: 40),
-
-          // Continue Button
+          const SizedBox(height: 40),
           Center(
             child: ElevatedButton(
-              onPressed: _canProceed() ? widget.onNext : null,
+              onPressed: widget.onNext,
               style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
-              child: Text(
-                'Continue',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
+              child: const Text('Continue', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
-
           if (!_canProceed()) ...[
-            SizedBox(height: 16),
-            Center(
+            const SizedBox(height: 16),
+            const Center(
               child: Text(
                 'Please select both surgery date and type to continue',
                 style: TextStyle(color: Colors.grey, fontSize: 14),
@@ -243,96 +216,119 @@ class __CombinedSurgeryInfoPageState extends State<_CombinedSurgeryInfoPage> {
   }
 
   bool _canProceed() {
-    return widget.userProfile.surgeryDate != null &&
-        widget.userProfile.surgeryType != null;
+    return widget.userProfile.surgeryDate != null && widget.userProfile.surgeryType != null;
   }
 }
 
-// Personal Info Page (unchanged)
 class _PersonalInfoPage extends StatefulWidget {
   final UserProfile userProfile;
   final VoidCallback onNext;
 
-  _PersonalInfoPage({required this.userProfile, required this.onNext});
+  const _PersonalInfoPage({required this.userProfile, required this.onNext});
 
   @override
   __PersonalInfoPageState createState() => __PersonalInfoPageState();
 }
 
 class __PersonalInfoPageState extends State<_PersonalInfoPage> {
+  int? _selectedFeet;
+  int? _selectedInches;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.userProfile.height != null) {
+      _selectedFeet = (widget.userProfile.height! / 12).floor();
+      _selectedInches = widget.userProfile.height!.toInt() % 12;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: EdgeInsets.all(24),
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Tell us about yourself',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 32),
+          const Text('Tell us about yourself', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 32),
           DropdownButtonFormField<String>(
             value: widget.userProfile.sex,
-            decoration: InputDecoration(labelText: 'Sex'),
-            items: ['Male', 'Female', 'Other'].map((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                widget.userProfile.sex = value;
-              });
-            },
+            decoration: const InputDecoration(labelText: 'Sex'),
+            items: ['Male', 'Female', 'Other'].map((v) => DropdownMenuItem<String>(value: v, child: Text(v))).toList(),
+            onChanged: (v) => setState(() => widget.userProfile.sex = v),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           TextField(
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: 'Age'),
-            onChanged: (value) {
-              widget.userProfile.age = int.tryParse(value);
-            },
+            decoration: const InputDecoration(labelText: 'Age'),
+            onChanged: (val) => widget.userProfile.age = int.tryParse(val),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           TextField(
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: 'Weight (lbs)'),
-            onChanged: (value) {
-              widget.userProfile.weight = double.tryParse(value);
-              widget.userProfile.startingWeight = widget.userProfile.weight;
+            decoration: const InputDecoration(labelText: 'Weight (lbs)'),
+            onChanged: (val) {
+              final lbs = double.tryParse(val);
+              widget.userProfile.weight = lbs;
+              widget.userProfile.startingWeight = lbs;
             },
           ),
-          SizedBox(height: 16),
-          TextField(
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: 'Height (cm)'),
-            onChanged: (value) {
-              widget.userProfile.height = double.tryParse(value);
-            },
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<int>(
+                  decoration: InputDecoration(
+                    labelText: 'Feet',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  value: _selectedFeet,
+                  items: List.generate(7, (i) => i + 2)
+                      .map((feet) => DropdownMenuItem<int>(value: feet, child: Text('$feet ft')))
+                      .toList(),
+                  onChanged: (feet) => setState(() {
+                    _selectedFeet = feet;
+                    if (_selectedInches != null) {
+                      widget.userProfile.height = (feet! * 12 + _selectedInches!).toDouble();
+                    }
+                  }),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: DropdownButtonFormField<int>(
+                  decoration: InputDecoration(
+                    labelText: 'Inches',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  value: _selectedInches,
+                  items: List.generate(12, (i) => i)
+                      .map((inch) => DropdownMenuItem<int>(value: inch, child: Text('$inch in')))
+                      .toList(),
+                  onChanged: (inch) => setState(() {
+                    _selectedInches = inch;
+                    if (_selectedFeet != null) {
+                      widget.userProfile.height = (_selectedFeet! * 12 + inch!).toDouble();
+                    }
+                  }),
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             value: widget.userProfile.race,
-            decoration: InputDecoration(labelText: 'Race'),
-            items: ['Asian', 'Black', 'Hispanic', 'White', 'Other'].map((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                widget.userProfile.race = value;
-              });
-            },
+            decoration: const InputDecoration(labelText: 'Race'),
+            items: const ['Asian', 'Black', 'Hispanic', 'White', 'Other']
+                .map((v) => DropdownMenuItem<String>(value: v, child: Text(v))).toList(),
+            onChanged: (v) => setState(() => widget.userProfile.race = v),
           ),
-          SizedBox(height: 32),
+          const SizedBox(height: 32),
           Center(
             child: ElevatedButton(
               onPressed: widget.onNext,
-              child: Text('Next', style: TextStyle(fontSize: 16)),
+              child: const Text('Next', style: TextStyle(fontSize: 16)),
             ),
           ),
         ],
@@ -341,27 +337,23 @@ class __PersonalInfoPageState extends State<_PersonalInfoPage> {
   }
 }
 
-// Result Page (unchanged)
 class _ResultPage extends StatelessWidget {
   final UserProfile userProfile;
   final VoidCallback onComplete;
 
-  _ResultPage({required this.userProfile, required this.onComplete});
+  const _ResultPage({required this.userProfile, required this.onComplete});
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: EdgeInsets.all(24),
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Your Journey Begins!',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 32),
+          const Text('Your Journey Begins!', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 32),
           Container(
-            padding: EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               border: Border.all(color: AppTheme.goldenYellow),
               borderRadius: BorderRadius.circular(16),
@@ -369,26 +361,35 @@ class _ResultPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Your BMI: ${userProfile.bmi.toStringAsFixed(1)}',
-                    style: TextStyle(fontSize: 20)),
+                Text(
+                  'Your BMI: ${userProfile.bmi.toStringAsFixed(1)}',
+                  style: TextStyle(fontSize: 20),
+                ),
                 SizedBox(height: 16),
-                Text('Expected Weight Loss Timeline:',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  'Expected Weight Loss Timeline:',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 SizedBox(height: 8),
-                Text('Month 1: ${userProfile.getExpectedWeight(4).toStringAsFixed(1)} lbs'),
-                Text('Month 3: ${userProfile.getExpectedWeight(12).toStringAsFixed(1)} lbs'),
-                Text('Month 6: ${userProfile.getExpectedWeight(24).toStringAsFixed(1)} lbs'),
+                Text(
+                  'Month 1: ${userProfile.getExpectedWeight(4).toStringAsFixed(1)} lbs',
+                ),
+                Text(
+                  'Month 3: ${userProfile.getExpectedWeight(12).toStringAsFixed(1)} lbs',
+                ),
+                Text(
+                  'Month 6: ${userProfile.getExpectedWeight(24).toStringAsFixed(1)} lbs',
+                ),
               ],
             ),
+
           ),
-          SizedBox(height: 32),
+          const SizedBox(height: 32),
           Center(
             child: ElevatedButton(
               onPressed: onComplete,
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-              ),
-              child: Text('Get Started', style: TextStyle(fontSize: 16)),
+              style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16)),
+              child: const Text('Get Started', style: TextStyle(fontSize: 16)),
             ),
           ),
         ],
