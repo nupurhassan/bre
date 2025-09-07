@@ -19,7 +19,7 @@ class WeightProgressCard extends StatelessWidget {
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: AppTheme.cardBackground,
+        color: AppTheme.accentTaupe,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.3),

@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import '../models/user_profile.dart';
 import '../theme/app_theme.dart';
-import '../services/csv_data_service.dart';
+import '../services/user_repository.dart';
+import '../services/weight_repository.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/graph/full_graph_screen.dart';
 import '../screens/weight/log_weight_screen.dart';
 import '../screens/timeline/timeline_screen.dart';
+import '../screens/calendar/calendar_screen.dart'; // ✅ New import
 import '../screens/settings/settings_screen.dart';
 import '../screens/about/about_screen.dart';
 
 class DrawerMenu extends StatelessWidget {
   final UserProfile? userProfile;
-  final CSVDataService _dataService = CSVDataService();
 
   DrawerMenu({this.userProfile});
 
@@ -19,13 +20,13 @@ class DrawerMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return Drawer(
       child: Container(
-        color: AppTheme.cardBackground,
+        color: AppTheme.accentTaupe,
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
               decoration: BoxDecoration(
-                color: AppTheme.primaryBlue,
+                color: AppTheme.accentBlueGrey,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -36,7 +37,7 @@ class DrawerMenu extends StatelessWidget {
                     backgroundColor: Colors.white,
                     child: Text(
                       _getInitials(),
-                      style: TextStyle(color: AppTheme.primaryBlue, fontSize: 24),
+                      style: TextStyle(color: AppTheme.accentBlueGrey, fontSize: 24),
                     ),
                   ),
                   SizedBox(height: 10),
@@ -71,6 +72,11 @@ class DrawerMenu extends StatelessWidget {
               'Surgery Timeline',
                   () => _navigateTo(context, TimelineScreen()),
             ),
+            _buildDrawerItem(
+              Icons.calendar_today,
+              'Calendar', // ✅ New Calendar entry
+                  () => _navigateTo(context, CalendarScreen()),
+            ),
             Divider(color: Colors.grey[600]),
             _buildDrawerItem(
               Icons.download,
@@ -89,7 +95,7 @@ class DrawerMenu extends StatelessWidget {
                   () => _navigateTo(context, SettingsScreen()),
             ),
             _buildDrawerItem(
-              Icons.info,
+              Icons.info_outline,
               'About',
                   () => _navigateTo(context, AboutScreen()),
             ),
@@ -137,42 +143,15 @@ class DrawerMenu extends StatelessWidget {
     Navigator.pop(context); // Close drawer
 
     try {
-      // Show loading dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            backgroundColor: AppTheme.cardBackground,
-            content: Row(
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(width: 16),
-                Text('Exporting data...', style: TextStyle(color: Colors.white)),
-              ],
-            ),
-          );
-        },
-      );
-
-      final exportPath = await _dataService.exportAllData();
-
-      Navigator.pop(context); // Close loading dialog
-
+      final logs = await WeightRepository.getWeightLogs();
+      // TODO: implement export to file if needed
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Data exported successfully!'),
+          content: Text('Exported ${logs.length} weight logs!'),
           backgroundColor: Colors.green,
-          action: SnackBarAction(
-            label: 'Show Path',
-            onPressed: () {
-              _showExportPath(context, exportPath);
-            },
-          ),
         ),
       );
     } catch (e) {
-      Navigator.pop(context); // Close loading dialog
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Export failed: ${e.toString()}'),
@@ -182,69 +161,37 @@ class DrawerMenu extends StatelessWidget {
     }
   }
 
-  void _showExportPath(BuildContext context, String path) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: AppTheme.cardBackground,
-          title: Text('Export Location', style: TextStyle(color: Colors.white)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Your data has been exported to:', style: TextStyle(color: Colors.grey)),
-              SizedBox(height: 8),
-              SelectableText(
-                path,
-                style: TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('OK', style: TextStyle(color: AppTheme.primaryBlue)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<void> _showDataInfo(BuildContext context) async {
     Navigator.pop(context); // Close drawer
-
     try {
-      final weightEntries = await _dataService.loadWeightEntries();
-      final settings = await _dataService.loadAppSettings();
-      final entriesCount = settings['entriesCount'] ?? 0;
-
+      final logs = await WeightRepository.getWeightLogs();
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            backgroundColor: AppTheme.cardBackground,
+            backgroundColor: AppTheme.accentTaupe,
             title: Text('Data Information', style: TextStyle(color: Colors.white)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDataInfoRow('Weight Entries', '${weightEntries.length}'),
-                _buildDataInfoRow('Total Logs', '$entriesCount'),
-                _buildDataInfoRow('Storage Type', 'CSV Files'),
-                _buildDataInfoRow('First Entry', weightEntries.isNotEmpty
-                    ? '${weightEntries.first.date.day}/${weightEntries.first.date.month}/${weightEntries.first.date.year}'
-                    : 'None'),
-                _buildDataInfoRow('Latest Entry', weightEntries.isNotEmpty
-                    ? '${weightEntries.last.date.day}/${weightEntries.last.date.month}/${weightEntries.last.date.year}'
-                    : 'None'),
+                _buildDataInfoRow('Weight Entries', '${logs.length}'),
+                _buildDataInfoRow(
+                    'First Entry',
+                    logs.isNotEmpty
+                        ? logs.first.date.toLocal().toString()
+                        : 'None'),
+                _buildDataInfoRow(
+                    'Latest Entry',
+                    logs.isNotEmpty
+                        ? logs.last.date.toLocal().toString()
+                        : 'None'),
               ],
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: Text('Close', style: TextStyle(color: AppTheme.primaryBlue)),
+                child: Text('Close', style: TextStyle(color: AppTheme.accentBlueGrey)),
               ),
             ],
           );
@@ -278,19 +225,15 @@ class DrawerMenu extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: AppTheme.cardBackground,
+          backgroundColor: AppTheme.accentTaupe,
           title: Text('Reset App', style: TextStyle(color: Colors.white)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Are you sure you want to reset the app? This will delete all your data including:',
+                'Are you sure you want to reset the app? This will delete all your data.',
                 style: TextStyle(color: Colors.grey),
               ),
-              SizedBox(height: 12),
-              Text('• User profile', style: TextStyle(color: Colors.white)),
-              Text('• All weight entries', style: TextStyle(color: Colors.white)),
-              Text('• App settings', style: TextStyle(color: Colors.white)),
               SizedBox(height: 12),
               Text(
                 'This action cannot be undone!',
@@ -305,18 +248,8 @@ class DrawerMenu extends StatelessWidget {
             ),
             TextButton(
               onPressed: () async {
-                try {
-                  await _dataService.clearAllData();
-                  Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-                } catch (e) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error resetting app: ${e.toString()}'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
+                await UserRepository.clearProfile();
+                Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
               },
               child: Text('Reset', style: TextStyle(color: Colors.red)),
             ),

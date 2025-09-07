@@ -2,8 +2,8 @@ class UserProfile {
   DateTime? surgeryDate;
   String? sex;
   int? age;
-  double? weight;       // in pounds (lbs)
-  double? height;       // in inches
+  double? weight; // in pounds (lbs)
+  double? height; // in inches
   String? race;
   String? surgeryType;
   double? startingWeight; // in pounds (lbs)
@@ -25,8 +25,7 @@ class UserProfile {
 
   double get bmi {
     if (weight == null || height == null) return 0;
-    // Imperial BMI formula: 703 * weight (lbs) / [height (in)]^2
-    return (weight! * 703) / (height! * height!);
+    return (weight! * 703) / (height! * height!); // Imperial BMI
   }
 
   int get weeksPostOp {
@@ -38,74 +37,40 @@ class UserProfile {
   double getExpectedWeight(int weeks) {
     if (startingWeight == null || surgeryType == null) return weight ?? 0;
 
-    // Define milestone percentages based on surgery type
     Map<int, double> milestones = {};
 
     switch (surgeryType) {
       case 'Gastric Bypass':
-        milestones = {
-          0: 0.0,    // Week 0: 0%
-          4: 0.10,   // Month 1: 10%
-          12: 0.25,  // Month 3: 25%
-          24: 0.35,  // Month 6: 35%  ← updated from 50%
-          52: 0.60,  // Month 12: 60%
-        };
+        milestones = {0: 0.0, 4: 0.10, 12: 0.25, 24: 0.35, 52: 0.60};
         break;
-
       case 'Gastric Sleeve':
-        milestones = {
-          0: 0.0,
-          4: 0.08,
-          12: 0.20,
-          24: 0.30,  // ← updated from 45%
-          52: 0.55,
-        };
+        milestones = {0: 0.0, 4: 0.08, 12: 0.20, 24: 0.30, 52: 0.55};
         break;
-
       case 'Duodenal Switch':
-        milestones = {
-          0: 0.0,
-          4: 0.12,
-          12: 0.30,  // ← updated from 35%
-          24: 0.50,  // ← updated from 70%
-          52: 0.80,
-        };
+        milestones = {0: 0.0, 4: 0.12, 12: 0.30, 24: 0.50, 52: 0.80};
         break;
-
-      default:
-        return startingWeight!;
     }
 
-    double percentageLoss = _interpolatePercentageLoss(weeks, milestones);
+    double percentageLoss = _interpolate(weeks, milestones);
     return startingWeight! * (1 - percentageLoss);
   }
 
-  double _interpolatePercentageLoss(int weeks, Map<int, double> milestones) {
-    if (milestones.containsKey(weeks)) {
-      return milestones[weeks]!;
-    }
+  double _interpolate(int weeks, Map<int, double> milestones) {
+    if (milestones.containsKey(weeks)) return milestones[weeks]!;
 
-    List<int> sortedWeeks = milestones.keys.toList()..sort();
-    if (weeks <= sortedWeeks.first) {
-      return milestones[sortedWeeks.first]!;
-    }
-    if (weeks >= sortedWeeks.last) {
-      return milestones[sortedWeeks.last]!;
-    }
+    final keys = milestones.keys.toList()..sort();
+    if (weeks <= keys.first) return milestones[keys.first]!;
+    if (weeks >= keys.last) return milestones[keys.last]!;
 
-    int lowerWeek = 0, upperWeek = 0;
-    for (int i = 0; i < sortedWeeks.length - 1; i++) {
-      if (weeks >= sortedWeeks[i] && weeks <= sortedWeeks[i + 1]) {
-        lowerWeek = sortedWeeks[i];
-        upperWeek = sortedWeeks[i + 1];
-        break;
+    for (int i = 0; i < keys.length - 1; i++) {
+      if (weeks >= keys[i] && weeks <= keys[i + 1]) {
+        final w1 = keys[i], w2 = keys[i + 1];
+        final p1 = milestones[w1]!, p2 = milestones[w2]!;
+        final ratio = (weeks - w1) / (w2 - w1);
+        return p1 + (p2 - p1) * ratio;
       }
     }
-
-    double lowerPerc = milestones[lowerWeek]!;
-    double upperPerc = milestones[upperWeek]!;
-    double ratio = (weeks - lowerWeek) / (upperWeek - lowerWeek);
-    return lowerPerc + (upperPerc - lowerPerc) * ratio;
+    return 0.0;
   }
 
   Map<String, dynamic> toJson() => {
@@ -121,20 +86,18 @@ class UserProfile {
     'email': email,
   };
 
-  factory UserProfile.fromJson(Map<String, dynamic> json) {
-    return UserProfile(
-      surgeryDate: json['surgeryDate'] != null
-          ? DateTime.parse(json['surgeryDate'])
-          : null,
-      sex: json['sex'],
-      age: json['age'],
-      weight: json['weight']?.toDouble(),
-      height: json['height']?.toDouble(),
-      race: json['race'],
-      surgeryType: json['surgeryType'],
-      startingWeight: json['startingWeight']?.toDouble(),
-      name: json['name'],
-      email: json['email'],
-    );
-  }
+  factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
+    surgeryDate: json['surgeryDate'] != null
+        ? DateTime.parse(json['surgeryDate'])
+        : null,
+    sex: json['sex'],
+    age: json['age'],
+    weight: (json['weight'] as num?)?.toDouble(),
+    height: (json['height'] as num?)?.toDouble(),
+    race: json['race'],
+    surgeryType: json['surgeryType'],
+    startingWeight: (json['startingWeight'] as num?)?.toDouble(),
+    name: json['name'],
+    email: json['email'],
+  );
 }

@@ -1,7 +1,7 @@
 class WeightEntry {
-  DateTime date;
-  double weight;
-  String? notes;
+  final DateTime date;
+  final double weight;
+  final String? notes;
 
   WeightEntry({
     required this.date,
@@ -9,16 +9,18 @@ class WeightEntry {
     this.notes,
   });
 
+  /// Convert to JSON for saving
   Map<String, dynamic> toJson() => {
-    'date': date.toIso8601String(),
+    'date': DateTime(date.year, date.month, date.day).toIso8601String(), // normalized date
     'weight': weight,
     'notes': notes,
   };
 
+  /// Create from JSON when loading
   factory WeightEntry.fromJson(Map<String, dynamic> json) {
     return WeightEntry(
-      date: DateTime.parse(json['date']),
-      weight: json['weight'].toDouble(),
+      date: DateTime.parse(json['date']), // safely parse ISO string
+      weight: (json['weight'] as num).toDouble(),
       notes: json['notes'],
     );
   }

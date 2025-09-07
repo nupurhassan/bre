@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../../models/user_profile.dart';
 import '../../theme/app_theme.dart';
+import '../../services/user_repository.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final UserProfile userProfile;
@@ -27,9 +27,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _editedProfile = UserProfile.fromJson(widget.userProfile.toJson());
     _nameController = TextEditingController(text: _editedProfile.name);
     _emailController = TextEditingController(text: _editedProfile.email);
-    _ageController = TextEditingController(text: _editedProfile.age?.toString());
-    _weightController = TextEditingController(text: _editedProfile.weight?.toString());
-    _heightController = TextEditingController(text: _editedProfile.height?.toString());
+    _ageController =
+        TextEditingController(text: _editedProfile.age.toString());
+    _weightController =
+        TextEditingController(text: _editedProfile.weight.toString());
+    _heightController =
+        TextEditingController(text: _editedProfile.height.toString());
   }
 
   @override
@@ -75,15 +78,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               DropdownButtonFormField<String>(
                 value: _editedProfile.sex,
                 decoration: InputDecoration(labelText: 'Sex'),
-                items: ['Male', 'Female', 'Other'].map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
+                items: ['Male', 'Female', 'Other']
+                    .map((String value) => DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                ))
+                    .toList(),
                 onChanged: (value) {
                   setState(() {
-                    _editedProfile.sex = value;
+                    _editedProfile.sex = value ?? "Other";
                   });
                 },
               ),
@@ -92,35 +95,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 controller: _ageController,
                 decoration: InputDecoration(labelText: 'Age'),
                 keyboardType: TextInputType.number,
-                onChanged: (value) => _editedProfile.age = int.tryParse(value),
+                onChanged: (value) =>
+                _editedProfile.age = int.tryParse(value) ?? 0,
               ),
               SizedBox(height: 16),
               TextFormField(
                 controller: _weightController,
                 decoration: InputDecoration(labelText: 'Current Weight (lbs)'),
                 keyboardType: TextInputType.number,
-                onChanged: (value) => _editedProfile.weight = double.tryParse(value),
+                onChanged: (value) =>
+                _editedProfile.weight = double.tryParse(value) ?? 0,
               ),
               SizedBox(height: 16),
               TextFormField(
                 controller: _heightController,
                 decoration: InputDecoration(labelText: 'Height (inches)'),
                 keyboardType: TextInputType.number,
-                onChanged: (value) => _editedProfile.height = double.tryParse(value),
+                onChanged: (value) =>
+                _editedProfile.height = double.tryParse(value) ?? 0,
               ),
               SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _editedProfile.race,
                 decoration: InputDecoration(labelText: 'Race'),
-                items: ['Asian', 'Black', 'Hispanic', 'White', 'Other'].map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
+                items: ['Asian', 'Black', 'Hispanic', 'White', 'Other']
+                    .map((String value) => DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                ))
+                    .toList(),
                 onChanged: (value) {
                   setState(() {
-                    _editedProfile.race = value;
+                    _editedProfile.race = value ?? "Other";
                   });
                 },
               ),
@@ -137,8 +143,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _saveProfile() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('userProfile', jsonEncode(_editedProfile.toJson()));
-    Navigator.pop(context, true);
+    try {
+      await UserRepository.saveUserProfile(_editedProfile);
+      Navigator.pop(context, true);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error saving profile: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

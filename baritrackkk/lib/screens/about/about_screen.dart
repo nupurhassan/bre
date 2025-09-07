@@ -16,7 +16,7 @@ class AboutScreen extends StatelessWidget {
             Icon(
               Icons.local_hospital,
               size: 80,
-              color: AppTheme.primaryBlue,
+              color: AppTheme.accentBlueGrey,
             ),
             SizedBox(height: 24),
             Text(

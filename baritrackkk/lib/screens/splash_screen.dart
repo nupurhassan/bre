@@ -3,7 +3,7 @@ import 'dart:async';
 import 'onboarding/onboarding_screen.dart';
 import 'home/home_screen.dart';
 import '../theme/app_theme.dart';
-import '../services/csv_data_service.dart';
+import '../services/user_repository.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
@@ -11,8 +11,6 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  final CSVDataService _dataService = CSVDataService();
-
   @override
   void initState() {
     super.initState();
@@ -23,8 +21,7 @@ class _SplashScreenState extends State<SplashScreen> {
     await Future.delayed(Duration(milliseconds: 2500));
 
     try {
-      // Check if user profile exists (indicates app has been set up)
-      final userProfile = await _dataService.loadUserProfile();
+      final userProfile = await UserRepository.loadUserProfile();
       bool isFirstTime = userProfile == null;
 
       Navigator.pushReplacement(
@@ -35,7 +32,6 @@ class _SplashScreenState extends State<SplashScreen> {
       );
     } catch (e) {
       print('Error during splash navigation: $e');
-      // Default to onboarding if there's an error
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => OnboardingScreen()),
@@ -46,7 +42,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.accentOrange,
+      backgroundColor: AppTheme.accentBeige,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
 import '../../models/user_profile.dart';
-import '../../theme/app_theme.dart';
-import '../../services/csv_data_service.dart';
+import '../../services/user_repository.dart';
 import '../home/home_screen.dart';
+import '../../theme/app_theme.dart';
 
 class OnboardingScreen extends StatefulWidget {
   @override
@@ -14,7 +13,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   final UserProfile _userProfile = UserProfile();
-  final CSVDataService _dataService = CSVDataService();
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +62,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             height: 8,
             margin: const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
-              color: index == _currentPage ? AppTheme.primaryBlue : Colors.grey,
+              color: index == _currentPage ? AppTheme.accentBlueGrey : Colors.grey,
               borderRadius: BorderRadius.circular(4),
             ),
           );
@@ -82,8 +80,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _completeOnboarding() async {
     try {
-      await _dataService.saveUserProfile(_userProfile);
-      await _dataService.setAppSetting('isFirstTime', false);
+      await UserRepository.saveUserProfile(_userProfile);
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => HomeScreen()),
@@ -144,7 +141,7 @@ class __CombinedSurgeryInfoPageState extends State<_CombinedSurgeryInfoPage> {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                border: Border.all(color: AppTheme.goldenYellow),
+                border: Border.all(color: AppTheme.accentBeige),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -172,15 +169,15 @@ class __CombinedSurgeryInfoPageState extends State<_CombinedSurgeryInfoPage> {
             decoration: InputDecoration(
               labelText: 'Select your surgery type',
               border: OutlineInputBorder(
-                borderSide: BorderSide(color: AppTheme.goldenYellow),
+                borderSide: BorderSide(color: AppTheme.accentBeige),
                 borderRadius: BorderRadius.circular(8),
               ),
               enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: AppTheme.goldenYellow),
+                borderSide: BorderSide(color: AppTheme.accentBeige),
                 borderRadius: BorderRadius.circular(8),
               ),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: AppTheme.primaryBlue, width: 2),
+                borderSide: BorderSide(color: AppTheme.accentBlueGrey, width: 2),
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -192,7 +189,7 @@ class __CombinedSurgeryInfoPageState extends State<_CombinedSurgeryInfoPage> {
           const SizedBox(height: 40),
           Center(
             child: ElevatedButton(
-              onPressed: widget.onNext,
+              onPressed: _canProceed() ? widget.onNext : null,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -200,16 +197,6 @@ class __CombinedSurgeryInfoPageState extends State<_CombinedSurgeryInfoPage> {
               child: const Text('Continue', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
-          if (!_canProceed()) ...[
-            const SizedBox(height: 16),
-            const Center(
-              child: Text(
-                'Please select both surgery date and type to continue',
-                style: TextStyle(color: Colors.grey, fontSize: 14),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -237,7 +224,7 @@ class __PersonalInfoPageState extends State<_PersonalInfoPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.userProfile.height != null) {
+    if (widget.userProfile.height != null && widget.userProfile.height! > 0) {
       _selectedFeet = (widget.userProfile.height! / 12).floor();
       _selectedInches = widget.userProfile.height!.toInt() % 12;
     }
@@ -289,8 +276,8 @@ class __PersonalInfoPageState extends State<_PersonalInfoPage> {
                       .toList(),
                   onChanged: (feet) => setState(() {
                     _selectedFeet = feet;
-                    if (_selectedInches != null) {
-                      widget.userProfile.height = (feet! * 12 + _selectedInches!).toDouble();
+                    if (_selectedInches != null && feet != null) {
+                      widget.userProfile.height = (feet * 12 + _selectedInches!).toDouble();
                     }
                   }),
                 ),
@@ -308,8 +295,8 @@ class __PersonalInfoPageState extends State<_PersonalInfoPage> {
                       .toList(),
                   onChanged: (inch) => setState(() {
                     _selectedInches = inch;
-                    if (_selectedFeet != null) {
-                      widget.userProfile.height = (_selectedFeet! * 12 + inch!).toDouble();
+                    if (_selectedFeet != null && inch != null) {
+                      widget.userProfile.height = (_selectedFeet! * 12 + inch).toDouble();
                     }
                   }),
                 ),
@@ -355,7 +342,7 @@ class _ResultPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              border: Border.all(color: AppTheme.goldenYellow),
+              border: Border.all(color: AppTheme.accentBeige),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
@@ -363,26 +350,19 @@ class _ResultPage extends StatelessWidget {
               children: [
                 Text(
                   'Your BMI: ${userProfile.bmi.toStringAsFixed(1)}',
-                  style: TextStyle(fontSize: 20),
+                  style: const TextStyle(fontSize: 20),
                 ),
-                SizedBox(height: 16),
-                Text(
+                const SizedBox(height: 16),
+                const Text(
                   'Expected Weight Loss Timeline:',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 8),
-                Text(
-                  'Month 1: ${userProfile.getExpectedWeight(4).toStringAsFixed(1)} lbs',
-                ),
-                Text(
-                  'Month 3: ${userProfile.getExpectedWeight(12).toStringAsFixed(1)} lbs',
-                ),
-                Text(
-                  'Month 6: ${userProfile.getExpectedWeight(24).toStringAsFixed(1)} lbs',
-                ),
+                const SizedBox(height: 8),
+                Text('Month 1: ${userProfile.getExpectedWeight(4).toStringAsFixed(1)} lbs'),
+                Text('Month 3: ${userProfile.getExpectedWeight(12).toStringAsFixed(1)} lbs'),
+                Text('Month 6: ${userProfile.getExpectedWeight(24).toStringAsFixed(1)} lbs'),
               ],
             ),
-
           ),
           const SizedBox(height: 32),
           Center(

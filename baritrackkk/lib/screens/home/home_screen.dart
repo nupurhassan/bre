@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
 import '../../models/user_profile.dart';
 import '../../models/weight_entry.dart';
 import '../../theme/app_theme.dart';
-import '../../services/csv_data_service.dart';
+import '../../services/user_repository.dart';
+import '../../services/weight_repository.dart';
 import '../../widgets/drawer_menu.dart';
 import '../../widgets/weight_progress_card.dart';
 import '../../widgets/graph_preview_card.dart';
@@ -25,7 +25,6 @@ class _HomeScreenState extends State<HomeScreen> {
   List<WeightEntry> _weightEntries = [];
   bool _isOffTrack = false;
   bool _isLoading = true;
-  final CSVDataService _dataService = CSVDataService();
 
   @override
   void initState() {
@@ -34,14 +33,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // Load user profile and weight entries from CSV
-      _userProfile = await _dataService.loadUserProfile();
-      _weightEntries = await _dataService.loadWeightEntries();
+      _userProfile = await UserRepository.loadUserProfile();
+      _weightEntries = await WeightRepository.getWeightLogs();
 
       if (_userProfile != null) {
         _checkIfOffTrack();
@@ -55,18 +51,23 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
   void _checkIfOffTrack() {
     if (_userProfile != null) {
-      double expectedWeight = _userProfile!.getExpectedWeight(_userProfile!.weeksPostOp);
-      double currentWeight = _userProfile!.weight ?? _userProfile!.startingWeight ?? 0;
-      double expectedLoss = (_userProfile!.startingWeight ?? 0) - expectedWeight;
-      double actualLoss = (_userProfile!.startingWeight ?? 0) - currentWeight;
+      double expectedWeight =
+      _userProfile!.getExpectedWeight(_userProfile!.weeksPostOp);
+
+      double currentWeight =
+      (_userProfile?.weight ?? 0) > 0 ? _userProfile!.weight! : 0;
+
+      double expectedLoss =
+          (_userProfile?.startingWeight ?? 0) - expectedWeight;
+
+      double actualLoss =
+          (_userProfile?.startingWeight ?? 0) - currentWeight;
 
       _isOffTrack = actualLoss < (expectedLoss * 0.85); // 15% behind
     }
@@ -116,19 +117,14 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Icon(Icons.error_outline, size: 64, color: Colors.grey),
             SizedBox(height: 16),
-            Text(
-              'No profile found',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
-            ),
+            Text('No profile found',
+                style: TextStyle(fontSize: 18, color: Colors.grey)),
             SizedBox(height: 8),
-            Text(
-              'Please complete the onboarding process',
-              style: TextStyle(color: Colors.grey),
-            ),
+            Text('Please complete the onboarding process',
+                style: TextStyle(color: Colors.grey)),
             SizedBox(height: 24),
             ElevatedButton(
               onPressed: () {
-                // Navigate back to onboarding
                 Navigator.pushReplacementNamed(context, '/');
               },
               child: Text('Setup Profile'),
@@ -154,18 +150,16 @@ class _HomeScreenState extends State<HomeScreen> {
           SizedBox(height: 24),
           WeightProgressCard(userProfile: _userProfile!),
           SizedBox(height: 24),
-          // Use a key to force rebuild of GraphPreviewCard when data changes
           GraphPreviewCard(
-            key: ValueKey(_weightEntries.length), // This forces rebuild when entries change
+            key: ValueKey(_weightEntries.length),
             userProfile: _userProfile!,
           ),
           SizedBox(height: 24),
           _buildLogWeightButton(),
           SizedBox(height: 16),
-          _buildDataInfo(),
           if (_isOffTrack) ...[
-            SizedBox(height: 24),
             AlertBanner(),
+            SizedBox(height: 16),
           ],
         ],
       ),
@@ -181,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
             MaterialPageRoute(builder: (context) => LogWeightScreen()),
           );
           if (result == true) {
-            _loadData(); // Refresh data after logging weight
+            _loadData();
           }
         },
         icon: Icon(Icons.add),
@@ -193,66 +187,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildDataInfo() {
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.cardBackground.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.goldenYellow.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.info_outline, color: AppTheme.primaryBlue, size: 16),
-          SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Data entries: ${_weightEntries.length} • Stored in CSV files',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ),
-          IconButton(
-            icon: Icon(Icons.download, color: AppTheme.primaryBlue, size: 16),
-            onPressed: _exportData,
-            tooltip: 'Export Data',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _exportData() async {
-    try {
-      final exportPath = await _dataService.exportAllData();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Data exported successfully!'),
-          backgroundColor: Colors.green,
-          action: SnackBarAction(
-            label: 'View',
-            onPressed: () {
-              // You could implement file sharing here
-              print('Export path: $exportPath');
-            },
-          ),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error exporting data: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   Widget _buildBottomNavigationBar() {
     return BottomNavigationBar(
       currentIndex: _selectedIndex,
-      selectedItemColor: AppTheme.primaryBlue,
+      selectedItemColor: AppTheme.accentBlueGrey,
       unselectedItemColor: Colors.grey,
-      backgroundColor: AppTheme.cardBackground,
+      backgroundColor: AppTheme.accentTaupe,
       type: BottomNavigationBarType.fixed,
       onTap: _onNavigationItemTapped,
       items: [
@@ -265,9 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onNavigationItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    setState(() => _selectedIndex = index);
 
     switch (index) {
       case 1:
@@ -286,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => ProfileScreen()),
-        ).then((_) => _loadData()); // Refresh when returning from profile
+        ).then((_) => _loadData());
         break;
     }
   }
